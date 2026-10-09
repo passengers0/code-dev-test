@@ -1,0 +1,203 @@
+================================================================================
+ HighTec RISC-V Development Platform v11.0.0 Release Notes 功能测试报告
+ Release Notes Feature Verification Report
+================================================================================
+ 被测工具链 : C:\HighTec\toolchains\riscv\v11.0.0
+ Release    : 11.0.0 (Production, 发布日期 2026-09-02)
+ 依据文档   : releasenotes.pdf (10 页) + userguide.pdf (136 页)
+ 测试主机   : Microsoft Windows x86-64
+ 测试日期   : 2026-09-04
+ 测试目录   : C:\work\code\riscv11_test
+ 许可证     : RLM 节点锁定, C:\HighTec\licenses\riscv_llvm_acc12281_lic_nodelocked_sen16164.lic
+              (维护期至 2026.12, 有效期至 2027-01-31)
+
+ 测试结论汇总：
+   通过 (PASS)      : 10 项
+   不可测/需人工 (N/A) : 3 个条目（ARM64 host / SPDX 报告 / 安装器改进×3 项）
+--------------------------------------------------------------------------------
+
+1. [CCRM-115][clang][tools][libs] 升级到 LLVM 21.1.8 ................. PASS
+   ------------------------------------------------------------------
+   命令: clang.exe --version
+   结果: HighTec clang version 11.0.0 (657512d2467e02286f2f30afc0f8bea0143a4b96)
+         based on LLVM 21.1.8 built on 2026-09-02
+         Target: riscv32-unknown-unknown-elf
+   命令: ld.lld.exe --version / llvm-nm.exe --version
+   结果: 均为 "based on LLVM 21.1.8 built on 2026-09-02"
+   结论: clang / lld / llvm 工具均基于 LLVM 21.1.8，与 release notes 一致。PASS
+
+2. [CCRM-123][clang] 升级到 Reprise Licensing Manager (RLM) 18 ...... PASS
+   ------------------------------------------------------------------
+   验证内容:
+   a) 内嵌 RLM 版本号直接取证（RLM_DIAGNOSTICS 触发诊断文件）:
+        build\rlm_diagnostics.txt 内容开头:
+          RLM Diagnostics at 09/04/2026 14:11
+              RLM version: 18.0BL1
+              RLM platform: x64_w4
+              OS version: 6.2
+              ISV name: hightec-rt
+       -> 确认 clang.exe 内嵌 RLM 客户端版本为 18.0BL1，与 release notes 一致
+   b) RLM 许可证机制工作正常：
+      设置 RLM_LICENSE=C:\HighTec\licenses 后编译成功(exit 0)。
+      诊断输出显示 riscv-llvm v2026.12 OK（可检出）。
+      将 RLM_LICENSE 指向不存在路径时正确报错：
+        "Error checking out 'riscv-llvm' license: Can't read license data (-102)"
+   结论: RLM 18 确认（诊断文件直接打印 18.0BL1）。PASS
+
+3. [CCRM-169][libs] 升级到 Picolibc C 库 1.8.11 ...................... PASS
+   ------------------------------------------------------------------
+   命令: type ...\riscv\include\picolibc.h | findstr VERSION
+   结果: #define __PICOLIBC_VERSION__ "1.8.11"
+         #define _NEWLIB_VERSION     "4.3.0"
+   结论: Picolibc 1.8.11 确认。PASS
+
+4. [CCRM-10][clang][tools] 支持 ARM64 Linux 主机 ..................... N/A
+   ------------------------------------------------------------------
+   本机为 Windows x86-64，无法在 ARM64 Linux 主机上运行验证。
+   (bin 目录内无 ARM64 专用二进制；该特性需在 ARM64 Linux 环境实测)
+
+5. [CCRM-176][clang] 函数与静态分配变量默认生成 unique sections ..... PASS
+   ------------------------------------------------------------------
+   测试源: src\sections_default.c / src\rodata_test.c
+   命令(未加任何 -ffunction-sections/-fdata-sections):
+     clang -target riscv32-unknown-elf -march=rv32imac -mabi=ilp32 -c ...
+   用 llvm-objdump -h 检查目标文件节：
+     .text.func_a       .text.func_b      .text.helper     <- 函数
+     .data.global_init  .data.static_init                  <- 已初始化数据
+     .bss.global_zero   .bss.static_zero                   <- 零初始化数据
+     .rodata.table      .rodata.msg                        <- 常量数据
+   用 -### 确认 clang 驱动默认传递:
+     "-ffunction-sections" "-fdata-sections" "-fpragma-function-sections"
+     "-fpragma-data-sections"
+   结论: 默认即生成独立节，CCRM-176 前半部分确认。PASS
+
+6. [CCRM-176][lld] 链接器默认启用未引用节垃圾回收(GC) .............. PASS
+   ------------------------------------------------------------------
+   测试源: src\gc_default.c (used_func/used_global 被 _start 引用;
+           unused_func/unused_global 不被引用)
+   命令:
+     clang ... gc_default.o -nostdlib -T gc_default.ld   -> 链接
+   a) 经 clang 驱动链接(默认): 用 llvm-nm 检查最终 ELF
+      -> 仅保留 _start, used_func, used_global；unused_func/unused_global 被回收
+      -> -### 确认驱动默认传递 "--gc-sections"
+   b) 直接调用 ld.lld 且不带 --gc-sections: 两个未引用符号均保留(无 GC)
+   c) 直接调用 ld.lld 带 --gc-sections: 与 a) 相同，均被回收
+   结论: GC 默认开启经由 clang 驱动实现(默认传 --gc-sections)。PASS
+
+7. [CCRM-110][clang] 新增 -Wsection-feature 警告选项 ............... PASS
+   ------------------------------------------------------------------
+   测试源: src\section_feature.c (按 userguide 示例) /
+           src\section_feature_min.c
+   a) -Wsection-feature 编译: 产生 4 条警告，例如
+      warning: .test11 uses more than one section feature [-Wsection-feature]
+      warning: '#pragma clang section' overrides previous active section
+   b) -Wno-section-feature: 无警告(可抑制)
+   c) 默认(不带选项): 无警告(默认关闭，需显式开启)
+   实测附加行为: 由于 -ffunction-sections/-fdata-sections 默认开启，单独的
+      __attribute__((section)) 也会被判定为 "超过一个 section 特性" 而告警
+      (即使 -fno-function-sections -fno-data-sections 亦如此)。
+   结论: 选项存在且按 userguide 行为触发/抑制警告。PASS
+
+8. [CCRM-150][clang] 新增 -fno-zero-initialized-in-bss-gcc ......... PASS
+   ------------------------------------------------------------------
+   测试源: src\bss_test.c (int implicit_zero; / int explicit_zero = 0;)
+   用 llvm-nm 检查符号归属(B=bss, D=data)：
+     变量            默认         -fno-zero-init-in-bss   -fno-zero-init-in-bss-gcc
+     implicit_zero   .bss(B)      .data(D)                .bss(B)
+     explicit_zero   .bss(B)      .data(D)                .data(D)
+   与 userguide 11.0.0 行为表完全一致（-gcc 变体仅影响显式=0的变量，
+   匹配 GCC 行为）。结论: PASS
+
+9. [CCRM-78][all] 提供 SPDX 3.0.1 FOSS 报告 ...................... N/A
+   ------------------------------------------------------------------
+   对安装目录全盘检索(.spdx/.json/.csv/.html)，未找到 SPDX/FOSS 报告文件。
+   licenses\ 下仅有各组件 LICENSE.TXT 与 llvm\CREDITS.TXT。
+   判断: SPDX 3.0.1 FOSS 报告为独立交付物(通常在 HighTec 下载门户/许可证门户
+   单独提供)，未随安装包落盘。需在官方渠道确认。N/A（本机无法验证报告内容）
+
+10. [TCGEN-241][clang][lld][tools] 消除对 MSVC 2015 运行库依赖 ..... PASS
+    ------------------------------------------------------------------
+    用 llvm-objdump -p 检查 clang.exe / ld.lld.exe / llvm-nm.exe /
+    llvm-objcopy.exe / clangd.exe / libclang.dll 的导入 DLL：
+      clang.exe   : VERSION, ADVAPI32, WS2_32, ntdll, KERNEL32, USER32,
+                    IPHLPAPI, OLEAUT32, bcrypt, WINHTTP, CRYPT32
+      ld.lld.exe  : ADVAPI32, ntdll, KERNEL32, OLEAUT32
+      libclang.dll: 同 clang.exe
+    全部为 Windows 系统 DLL；全 bin 目录检索未发现 msvcp140.dll /
+    vcruntime140.dll / msvcr*.dll 等 MSVC 2015 再发行依赖。
+    结论: MSVC 2015 再发行依赖已消除。PASS
+
+11. [安装器改进] CCRM-85(回滚到初始状态) / TCTRIC-1348(卸载清理)
+    / TCTRIC-1349(全用户配置) ................................... N/A
+    ------------------------------------------------------------------
+    属于安装器(uninstall.exe)行为，需运行安装器交互验证；
+    本测试不执行安装/卸载操作。uninstall.dat 为加密二进制，无法静态取证。
+
+12. 端到端冒烟测试(附加，验证整体 toolchain 可用) ................ PASS
+    ------------------------------------------------------------------
+    测试源: src\main.c + src\syscalls.c + toolchain crt0.o + picolibc
+    命令:
+      clang -target riscv32-unknown-elf -march=rv32imafdc -mabi=ilp32
+            -T ...\riscv\lib\rv32imafdc\ilp32\except\picolibc.ld
+            -L ...\except crt0.o main.c syscalls.c -lc -lm
+    结果: 链接成功(exit 0)，生成 build\main.elf
+      Class: ELF32 | Machine: RISC-V | Entry: 0x80000000
+      size: text 34752 / data 96 / bss 4624
+      符号齐全: _start, main, printf(来自 picolibc), add
+    说明: 裸机无 OS，需提供 read/write/lseek/close 等底层 syscall stub
+      (picolibc stdio 依赖，本测试已提供)。
+
+13. 累积 release 特性抽测(1.x 系列,附加) ......................... PASS
+    ------------------------------------------------------------------
+    a) -mcpu=ifx-rc1-base-h-s     (TCRV-181, 1.1.0) 编译通过
+    b) -mcpu=ifx-rc1-perf-h-rt    (TCRV-202, 1.2.0) 编译通过
+    c) -march=rv32e -mabi=ilp32e  (TCRV-195, 1.2.0) 编译通过
+       (带警告: target configuration unsupported by HighTec toolchain
+        [-Wnon-hightec]，因 rv32e 不在 HighTec 支持 multilib 列表)
+    d) -march=rv64imafd -mabi=lp64d -mcmodel=large (TCRV-179, 1.1.0) 编译通过
+    e) Multilib (TCRV-221, 1.3.0):
+       新增变体存在: rv32imafd, rv32imafd_zca_zcb_zba_zbb_zbs,
+          rv32ima_zba_zbb_zbs_zfinx_zdinx, rv32ima_zca_zcb_zba_zbb_zbs,
+          rv64imafd_zca_zcb_zcd_zbc_zba_zbb_zbs
+       移除变体不存在: rv32ima_zbb, rv32imaf_zbb, rv32imafd_zbb,
+          rv32ima_zfinx_zdinx_zbb, rv64imafd_zbb
+--------------------------------------------------------------------------------
+ 环境信息
+--------------------------------------------------------------------------------
+  工具链版本  : HighTec clang 11.0.0 based on LLVM 21.1.8 (built 2026-09-02)
+  默认 target : riscv32-unknown-unknown-elf
+  multilib    : rv32ec rv32ema rv32ema_zca_zcb_zbb_zba_zbs rv32ic rv32ima
+                rv32imafc rv32imafd rv32imafdc rv32imafd_zca_zcb_zba_zbb_zbs
+                rv32ima_zba_zbb_zbs_zfinx_zdinx rv32ima_zca_zcb_zba_zbb_zbs
+                rv64imafd rv64imafdc rv64imafd_zca_zcb_zcd_zbc_zba_zbb_zbs
+ 工具集       : bin\ 下含 clang, clangd, ld.lld, llvm-ar/nm/objcopy/objdump/
+                readelf/size/strings/strip/addr2line/cxxfilt/dwarfdump/ranlib
+  默认开启选项(11.0.0 新增默认): -ffunction-sections, -fdata-sections,
+                -fpragma-function-sections, -fpragma-data-sections,
+                链接阶段 --gc-sections
+--------------------------------------------------------------------------------
+ 测试产物清单 (C:\work\code\riscv11_test)
+--------------------------------------------------------------------------------
+  src\sections_default.c    CCRM-176 unique sections 测试源
+  src\rodata_test.c         CCRM-176 rodata unique sections 测试源
+  src\gc_default.c / .ld    CCRM-176 lld GC 默认测试源/链接脚本
+  src\section_feature.c     CCRM-110 -Wsection-feature 测试源(userguide 示例)
+  src\section_feature_min.c CCRM-110 最小触发用例
+  src\bss_test.c            CCRM-150 -fno-zero-initialized-in-bss-gcc 测试源
+  src\main.c / syscalls.c   端到端冒烟测试源
+  obj\*.o                   编译中间产物
+  build\*.elf               链接产物 (main.elf 等)
+  build\sf_*.txt            -Wsection-feature 三组编译 stderr 记录
+  build\rlm_diagnostics.txt RLM_DIAGNOSTICS 触发的 RLM 诊断日志(含 RLM 18.0BL1)
+  releasenotes_extracted.txt / userguide_extracted.txt  PDF 提取文本(参考)
+  .venv\                    pypdf 虚拟环境(仅用于 PDF 文本提取)
+--------------------------------------------------------------------------------
+ 备注与遗留项
+--------------------------------------------------------------------------------
+ 1) ARM64 Linux 主机支持(CCRM-10)需在对应平台实测。
+ 2) SPDX 3.0.1 FOSS 报告(CCRM-78)未随安装包落盘，需在官方门户获取。
+ 3) 三项安装器改进(CCRM-85/TCTRIC-1348/TCTRIC-1349)需交互运行安装器验证。
+ 4) 所有测试在 RLM_LICENSE=C:\HighTec\licenses 前提下执行(许可证有效)。
+================================================================================
+ 报告结束
+================================================================================

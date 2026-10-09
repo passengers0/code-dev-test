@@ -1,0 +1,236 @@
+--- PAGE 1 ---
+[CCRM-175] Emit functions and static
+allocated variables into unique sections
+by default.
+ 
+  -fpragma-function-sections 和 -fpragma-data-sections 选项默认使能。但因为自定义段会导致
+用户工程出现未知问题。具体如下：
+选项导致某些自定义段未放到正确的内存中，导致生成的 hex 中带有 ram 区域，因此无法正常烧入。目前
+通过 -fno-pragma-function-sections -fno-pragma-data-sections 手动关闭功能后工程即可正常使
+用。具体该选项使用请参考https://docs.hightec-rt.com/migration-guide-tricore-
+v11/chapter/migration-background.html 。移植方法和Tricore-llvm v11.0.0 一样。
+[CCRM-112] Support translation unit
+compilation up to 1 terabyte
+ 
+  新增对 llvm 中的文件过大问题的支持，目前单个测试单元可以达到 1TB 。该项目前没有实际测试用
+例，虽然通过 pyrhon 脚本创建了大小为 500M 、 1G 大小 .c 文件，但是 v10.0.0 测试也正常。受限于电脑的
+内存，目前无法测出 v10.0.0 支持的测试单元上限。
+        ARM32 v11.0.0 版本基于 TMC 6412 Demo 进行测试。测试结果如下：
+--- PAGE 2 ---
+[CCRM-175] Garbage collection of
+unreferenced sections by the linker is
+enabled by default
+ 
+  v11.0.0 中新增默认开启 -Wl,--gc-sections 。通过独立的未使用的函数来进行测试：
+v10.0.0 和 v11.0.0 测试时都关闭 -Wl,--gc-sections 选项。
+v10.0.0 生成 map 依然有该函数，说明该函数没有被清理。
+v11.0.0 ，通过打印移除的段的信息可以看到即使没有 -Wl,--gc-sections 选项依旧删除了函数。
+#pragma clang section text=".gc_test"
+void gc_test(void)
+{
+    uint32 i;
+    uint32 j;
+    uint32 k;
+    for(i = 0; i < 1000000; i++)
+    {
+        for(j = 0; j < 1000; j++)
+        {
+            for(k = 0; k < 1000; k++)
+            {
+                ;
+            }
+        }
+    }
+}
+#pragma clang section text=""
+--- PAGE 3 ---
+为了保持用户的自主选择性，新增了 -no-gc-sections 选项，添加了 -Wl,-no-gc-sections 后。但
+目前该选项测试下来是无效的。
+[CCRM-151] Add support for the
+OVERLAY linker script command
+ 
+  支持链接脚本语法关键字OVERLAY 。 OVERLAY 主要用于 flash 充足但 ram 不足的场景中，通过
+OVERLAY 可以实现将不同的函数或者变量放到同一个 ram 内执行 ( 主要是函数 ) 。因此在每次执行函数或
+者需要变量值时，需要将相关数据复制到对应的 ram 区域。因此需要知道函数或者变量的 VMA 和 LMA 。
+llvm 中不会自动生成相关符号，关于地址需要用户自行设置。具体测试如下所示：
+链接脚本  
+测试代码  
+  测试的流程如下
+// 分配测试的内存空间，这里需要根据实际板子来处理，有的板子在处理时需要特殊对齐
+GMU_NORMAL_OVERLAY(rwx)         : ORIGIN = 0x100203FC, LENGTH = 4
+PFLASH0_NORMAL(rx)              : ORIGIN = 0x08000000, LENGTH = 3M - 32
+// 添加 overlay 处理
+OVERLAY ORIGIN(GMU_NORMAL_OVERLAY) : AT (ORIGIN(PFLASH0_NORMAL_OVERLAY))
+{
+    .overlay_output_test1
+    {
+    *(.overlay_input_test_1)
+    }
+    .overlay_output_test2
+    {
+    *(.overlay_input_test_2)
+    /* __ov_2_vma_end = .; */
+}
+} > GMU_NORMAL_OVERLAY 
+// 获取输出段的地址，这里需要根据不同芯片来处理
+__overlay_output_test1_ADDRESS_START = ADDR(overlay_output_test1);
+__overlay_output_test1_ADDRESS_END   = ADDR(overlay_output_test1) + 
+SIZEOF(overlay_output_test1);
+__overlay_output_test1_LOAD_ADDRESS_START = LOADADDR(overlay_output_test1);
+__overlay_output_test2_ADDRESS_START = ADDR(overlay_output_test2);
+__overlay_output_test2_ADDRESS_END   = ADDR(overlay_output_test2) + 
+SIZEOF(overlay_output_test2);
+__overlay_output_test2_LOAD_ADDRESS_START = LOADADDR(overlay_output_test2);
+--- PAGE 4 ---
+编译成功  
+通过烧入测试， overlay 测试代码执行正常。
+[CCRM-111] Add option -Wsection-
+feature to warn when a function or
+global variable is affected by more than
+one section defining feature
+ 
+  当同一个函数或者变量被赋予不同的段属性时，编译器开启 -Wsection-feature 选项后会给出警
+告。
+测试代码  
+测试结果  
+Startup_CopyData globalData = {NULL_PTR, NULL_PTR, NULL_PTR};
+//1. 加载变量 1 到 ram 中
+STARTUP_GETCOPYDATAINFO(overlay_output_test1, (globalData));
+Startup_InitDataSection(&globalData);
+//2. 调用处理函数
+overlay_input_test_1_function();
+//3. 加载变量 2 到 ram 中
+STARTUP_GETCOPYDATAINFO(overlay_output_test2, (globalData));
+Startup_InitDataSection(&globalData);
+//4. 调用处理函数
+overlay_input_test_2_function();
+//.h
+extern __attribute__((section (".test2")))void test_1_f(void);
+//.c
+int Wsection = 1;
+#pragma clang section text=".test1"
+void test_1_f(void)
+{
+    Wsection++;
+}
+#pragma clang section text=""
+--- PAGE 5 ---
+[CCRM-149] Add option -fno-zero-
+initialized-in-bss-gcc as a GCC
+compatible variant of -fno-zero-
+initialized-in-bss
+ 
+  默认情况下，全局变量或静态变量初始化为 0 或者不初始化都会放到默认的 .bss 段。在 gcc 编译器
+中，有一个选项 -fno-zero-initialized-in-bss 用于将显示初始化为 0 的变量和不初始化的变量进行区
+分。为了保证针对 GCC 的兼容性， HighTec 新增了 -fno-zero-initialized-in-bss-gcc 选项来实现此目
+的。
+1. 没有 -fno-zero-initialized-in-bss{-gcc}
+2. 有 -fno-zero-initialized-in-bss
+3. 有 -fno-zero-initialized-in-bss-gcc
+隐式的
+显示的
+[TCARM-158] Fixed wrong code
+generation for patterns like ((((A & B) ^
+1) & C) & A)
+ 
+测试用例  
+#if defined(FNO_ZERO_INITIALIZED_IN_BSS_GCC)
+int bss_explicitly  = 0;
+int bss_implicitly;
+#endif
+#include <stdint.h>
+/**
+ * @brief TCARM - 158 被测表达式： ((((A & B) ^ 1) & C) & A)
+ */
+--- PAGE 6 ---
+static inline uint32_t tcarm158_expr(uint32_t A, uint32_t B, uint32_t C)
+{
+    return ((((A & B) ^ 1) & C) & A);
+}
+/**
+ * @brief TCARM - 158 回归校验
+ * @param[in]  input_A    A 输入数组
+ * @param[in]  input_B    B 输入数组
+ * @param[in]  input_C    C 输入数组
+ * @param[in]  expect_out 每组对应的预期输出数组
+ * @param[in]  count      测试用例数量
+ * @return 失败用例个数； 0= 全部通过； >0= 存在不匹配（旧 bug 编译器会返回非 0 ）
+ *
+ * 编译要求： -O2 / -O3 ， -O0 不会复现 bug
+ */
+int tcarm158_verify(const uint32_t *input_A,
+                    const uint32_t *input_B,
+                    const uint32_t *input_C,
+                    const uint32_t *expect_out,
+                    unsigned int count)
+{
+    unsigned int fail_cnt = 0U;
+    for (unsigned int i = 0U; i < count; i++)
+    {
+        uint32_t A = input_A[i];
+        uint32_t B = input_B[i];
+        uint32_t C = input_C[i];
+        uint32_t expect = expect_out[i];
+        /* 被测：编译器生成代码，旧版本会出错  */
+        uint32_t actual = tcarm158_expr(A, B, C);
+        if (actual != expect)
+        {
+            fail_cnt++;
+        }
+    }
+    return (int)fail_cnt;
+}
+/* ---------------- 示例：预置测试向量，可直接调用  ---------------- */
+#ifdef TCARM158_TEST_EXAMPLE
+static const uint32_t vec_A[] = {
+    0x00000001U,
+    0x00000000U,
+    0xFFFFFFFFU,
+    // 0xAAAAAAAAU,
+    // 0x12345678U,
+    // 0x00000002U,
+    // 0x80000001U,
+};
+static const uint32_t vec_B[] = {
+--- PAGE 7 ---
+v10.0.0 编译执行和 v11.0.0 编译执行都没有报错。需要问一下德国原来复现的条件是什么？
+测试总结  
+1. 垃圾清理默认打开会对用户有一定影响；
+2. 垃圾清理关闭选项 -no-gc-sections 无效。
+3. 其他项测试目前正常。
+ 
+    0xFFFFFFFFU,
+    0xFFFFFFFFU,
+    0xFFFFFFFFU,
+    // 0x55555555U,
+    // 0x87654321U,
+    // 0x00000003U,
+    // 0x80000001U,
+};
+static const uint32_t vec_C[] = {
+    0xFFFFFFFFU,
+    0xFFFFFFFFU,
+    0xFFFFFFFFU,
+    // 0xFFFFFFFFU,
+    // 0x0F0F0F0FU,
+    // 0x00000003U,
+    // 0xFFFFFFFFU,
+};
+/* 表达式算出的标准答案  */
+static const uint32_t vec_expect[] = {
+    0x00000000U,
+    0x00000000U,
+    0xFFFFFFFEU,
+    // 0x00000000U,
+    // 0x02040200U,
+    // 0x00000000U,
+    // 0x80000000U,
+};
+static const unsigned int vec_cnt = sizeof(vec_A)/sizeof(vec_A[0]);
+/* main 入口调用  */
+int tcarm158_run_sample(void)
+{
+    int fails = tcarm158_verify(vec_A, vec_B, vec_C, vec_expect, vec_cnt);
+    return fails;
+}
+#endif

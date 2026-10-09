@@ -1,0 +1,219 @@
+--- PAGE 1 ---
+RISC-V Development Platform
+Release notes 11.0.0
+Copyright (C) 2026 HighTec EDV-Systeme GmbH
+2026-09-02
+--- PAGE 2 ---
+Table of Contents
+Release 11.0.0 .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  1
+Release 1.3.0 .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  2
+Release 1.2.0 .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  3
+Release 1.1.0 .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  4
+Release 1.0.0 .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  5
+Disclaimer .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  7
+--- PAGE 3 ---
+Release 11.0.0
+Overview
+The HighTec RISC-V Development Platform Version 11.0.0 is based on LLVM technology.
+Release date
+2026-09-02
+Release type
+Production
+What’s new
+• [CCRM-115][clang][tools][libs] Upgrade to LLVM 21.1.8.
+• [CCRM-123][clang] Upgrade to Reprise Licensing Manager (RLM) 18.
+• [CCRM-169][libs] Upgrade to Picolib C library 1.8.11.
+• [CCRM-10][clang][tools] Add support for ARM64 Linux host system.
+• [CCRM-176][clang] Emit functions and static allocated variables into unique sections by default.
+• [CCRM-176][lld] Garbage collection of unreferenced sections by the linker is enabled by default.
+• [CCRM-110][clang] Add option -Wsection-feature to warn when a function or global variable is
+affected by more than one section defining feature.
+• [CCRM-150][clang] Add option -fno-zero-initialized-in-bss-gcc as a GCC compatible variant
+of -fno-zero-initialized-in-bss.
+• [CCRM-78][all] Provide SPDX 3.0.1 FOSS report of the toolchain.
+Improvements
+• [CCRM-85][installer] Add support for rolling back to the initial (pre-installed) state by the installer.
+• [TCTRIC-1348][installer] Add support for cleaning up installation directory structure when
+uninstalling the toolchain.
+• [TCTRIC-1349][installer] Add support for all user configuration in the installer.
+• [TCGEN-241][clang][lld][tools] Eliminated dependency of the toolchain binaries to the MSVC 2015
+redistributable on Windows.
+Supported 64-bit platform(s)
+• Microsoft Windows 10 x86-64
+• Microsoft Windows 11 x86-64
+• Ubuntu 20.04.6 LTS x86-64
+• Ubuntu 22.04.6 LTS x86-64
+• Ubuntu 24.04.6 LTS x86-64
+• Ubuntu 20.04.6 LTS ARM64
+• Ubuntu 22.04.6 LTS ARM64
+• Ubuntu 24.04.6 LTS ARM64
+Copyright © 2026 HighTec EDV-Systeme GmbH RISC-V Development Platform - Release notes 11.0.0   |   1
+--- PAGE 4 ---
+Release 1.3.0
+Overview
+The HighTec RISC-V Development Platform Version 1.3.0 is based on LLVM technology.
+Release date
+2026-03-31
+Release type
+Production
+What’s new
+• [TCRV-224][lld] Allow memory region in OVERLAY.
+• [TCRV-204][clang] Added support for target processor related optimizations with -mtune.
+• [TCRV-221][libs] Removed multilibs rv32ima_zbb, rv32imaf_zbb, rv32imafd_zbb,
+rv32ima_zfinx_zdinx_zbb and rv64imafd_zbb.
+• [TCRV-221][libs] Added multilibs rv32imafd, rv32imafd_zca_zcb_zba_zbb_zbs,
+rv32ima_zba_zbb_zbs_zfinx_zdinx, rv32ima_zca_zcb_zba_zbb_zbs and
+rv64imafd_zca_zcb_zcd_zbc_zba_zbb_zbs.
+• [TCRV-222][clang] Improve code size for Oz optimization level.
+• [TCRV-225][clang] Change the base architecture of ifx-rc1-base-h-s from e to i.
+• [TCRV-225][clang] Change the base architecture of ifx-rc1-base-h-lp from i to e.
+• [TCRV-226][clang] Support translation unit compilation up to 1 terabyte.
+• [TCRV-227][clang] Added pragma align attribute.
+• [TCRV-228][clang] Added -fpragma-function-sections option.
+• [TCRV-228][clang] Added -fpragma-data-sections option.
+Supported 64-bit platform(s)
+• Microsoft Windows 10 x86-64
+• Microsoft Windows 11 x86-64
+• Ubuntu 20.04.6 LTS x86-64
+• Ubuntu 22.04.6 LTS x86-64
+• Ubuntu 24.04.6 LTS x86-64
+Copyright © 2026 HighTec EDV-Systeme GmbH RISC-V Development Platform - Release notes 11.0.0   |   2
+--- PAGE 5 ---
+Release 1.2.0
+Overview
+The HighTec RISC-V Development Platform Version 1.2.0 is based on LLVM technology.
+Release date
+2025-10-03
+Release type
+Production
+What’s new
+• [TCRV-195][clang] Added support for e extension.
+• [TCRV-199][clang] Added support for Smrnmi extension.
+• [TCRV-201][clang][libs] Added new rv32ic multilib variants for architectures without the a
+extension.
+• [TCRV-202][clang] Added new target CPUs: ifx-rc1-perf-h-rt, ifx-rc1-perf-h-rtv, ifx-
+rc1-base-l-lp, ifx-rc1-base-l-s, ifx-rc1-base-h-lp.
+• [TCRV-205][libs] Updated Picolibc C library to version 1.8.10.
+• [TCRV-207][tools] Removed QEMU simulator from the toolchain installation.
+• [TCRV-211][clang] Updated RLM library to version 16.1.
+Bugs fixed
+• [TCRV-193][clang] Fixed compiler crash when using -mno-strict-align for an architecture
+containing the Zfinx/Zdinx extensions.
+• [TCRV-194][clang] Fixed incorrect rounding using FLT_ROUNDS.
+Supported 64-bit platform(s)
+• Microsoft Windows 10 x86-64
+• Microsoft Windows 11 x86-64
+• Ubuntu 20.04.6 LTS x86-64
+• Ubuntu 22.04.6 LTS x86-64
+• Ubuntu 24.04.6 LTS x86-64
+Copyright © 2026 HighTec EDV-Systeme GmbH RISC-V Development Platform - Release notes 11.0.0   |   3
+--- PAGE 6 ---
+Release 1.1.0
+Overview
+The HighTec RISC-V Development Platform Version 1.1.0 is based on LLVM 19.1.7
+Release date
+2025-04-03
+Release type
+Production
+What’s new
+• [TCRV-178][clang][libs][tools] Synchronized to the LLVM community 19.1.7 branch.
+• [TCRV-181][clang] Added new target CPUs: ifx-rc1-base-h-rt, ifx-rc1-base-h-s and ifx-
+rc1-base-l-rt.
+• [TCRV-177][clang] Added assembly support for Synopsys DSP extension xsnpsudsp.
+• [TCRV-179][clang] Allow -mcmodel= to accept large for RV64.
+• [TCRV-180][clang] Add support of sdext and sdtrig extensions.
+• [TCRV-168][clang] Support inline assembly f constraint for Zfinx.
+• [TCRV-175][picolibc] Improvement of strcmp function for zbb extension.
+• [TCRV-186][picolibc] Improvement of the floating-point classification functions in the compiler and
+in picolibc.
+• [TCRV-185][picolibc] Change picolibc math library to use the new ARM based function instead of
+the obsolete Sun one.
+• [TCRV-192] Improve Dhrystone benchmark performance by inlining memcpy and the struct assign
+(structassign macro)
+Bugs fixed
+• [TCRV-172][clang] Fixed wrong code generation for fcopysign pattern with zdinx extension.
+• [TCRV-167][clang] Fix (MBBI→hasOneMemOperand() && "Expected mem operand")  assertion
+failure.
+• [TCRV-170][clang] Enable floating point CSR alias mnemonics for Zfinx, so reading F extension
+related CSR`s when `Zfinx is present will no longer result in error.
+Supported 64-bit platform(s)
+• Microsoft Windows 10, 11 and Linux
+• Linux variant was built and tested on Ubuntu 22.04 LTS. The minimum GLIBC and GLIBCXX
+versions required by the toolchain are GLIBC_2.29 and GLIBCXX_3.4.26, respectively.
+Copyright © 2026 HighTec EDV-Systeme GmbH RISC-V Development Platform - Release notes 11.0.0   |   4
+--- PAGE 7 ---
+Release 1.0.0
+Overview
+The HighTec RISC-V Development Platform Version 1.0.0 is based on a development version LLVM
+19.1.0
+Release date
+25th October 2024
+Release type
+Production
+What’s new
+• [clang][libs][tools]Synchronized to the LLVM community 19.1.0 development branch.
+• [clang][libs]C language is now supported. The latest supported version is C17.
+• [libs]Synchronized Picolibc to version 1.8.7.
+Bugs fixed
+• [clang] Passing empty structs/unions as arguments in C++ is now handled correctly. The behavior is
+similar to GCC’s.
+• [clang] Fix (FrameSDOps.empty() ||MF.getFrameInfo().adjustsStack()) assertion failure
+• [libunwind][RISCV] Make asm statement volatile
+Improvements
+• [clang] attributervv_vector_bits(N) is now supported for RVV vbool*_t types.
+• [clang] Profile names in -march option are now supported.
+• [clang] -m[no-]scalar-strict-align and -m[no-]vector-strict-align options have been
+added to give separate control of whether scalar or vector misaligned accesses may be created.
+-m[no-]strict-align applies to both scalar and vector.
+• [libs] Optimize strlen/strcpy for zbb extension
+• [clang] Improve shift through stack. Utilized by compiler_rt handling long doubles
+Known limitations
+• When LTO is enabled, depending on the set of extensions, the result cannot be decoded by llvm-
+objdump.
+• Missing support for C++ threads.
+• The following C / POSIX library functions are not supported: at_quick_exit, quick_exit,
+sigprocmask, open64, stat.
+• The C++ libraries are shipped with stdin support disabled. Related symbols like std::cin will not be
+available. Should you need a version with stdin support enabled, contact support@hightec-rt.com.
+• Missing support for the -frounding-math option.
+• Missing support for the <fstream> functions and some file positioning functions.
+• Missing support for atomic load and store operations.
+Copyright © 2026 HighTec EDV-Systeme GmbH RISC-V Development Platform - Release notes 11.0.0   |   5
+--- PAGE 8 ---
+• The strtold/wcstold functions are not supported and math functions operating on long double
+typed operands might not set the FE (floating-point environment) exception flags.
+• Limitation for the zfinx and zdinx extensions: the floating-point environment access and
+modification is not supported; inlines of asm math functions are not available.
+Supported 64-bit platform(s)
+• Microsoft Windows 10, 11 and Linux
+• Linux variant was built and tested on Ubuntu 22.04 LTS. The minimum GLIBC and GLIBCXX
+versions required by the toolchain are GLIBC_2.29 and GLIBCXX_3.4.26, respectively.
+Copyright © 2026 HighTec EDV-Systeme GmbH RISC-V Development Platform - Release notes 11.0.0   |   6
+--- PAGE 9 ---
+Disclaimer
+ 
+ 
+ 
+Please read carefully:
+This document contains descriptions for copyrighted products that are not explicitly indicated as such. The
+absence of the TM symbol does not infer that a product is not protected. Additionally, registered patents
+and trademarks are similarly not expressly indicated in this document.
+The information in this document has been carefully checked and is believed to be entirely reliable. However,
+HighTec EDV-Systeme GmbH assumes no responsibility for any inaccuracies. HighTec EDV-Systeme
+GmbH neither gives any guarantee nor accepts any liability whatsoever for consequential damages resulting
+from the use of this document or its associated product. HighTec EDV-Systeme GmbH reserves the right to
+alter the information contained herein without prior notification and accepts no responsibility for any
+damages that might result.
+HighTec EDV-Systeme hereby disclaims any and all warranties and liabilities of any kind, including without
+limitation, warranties of non-infringement of intellectual property rights of any third party.
+Rights - including those of translation, reprint, broadcast, photomechanical or similar reproduction and
+storage or processing in computer systems, in whole or in part - are reserved. No reproduction may occur
+without the express written consent from HighTec EDV-Systeme GmbH.
+Copyright © 2026 HighTec EDV-Systeme GmbH, D-66113 Saarbrücken.
+Copyright © 2026 HighTec EDV-Systeme GmbH RISC-V Development Platform - Release notes 11.0.0   |   7
+--- PAGE 10 ---
+HighTec EDV-Systeme GmbH
+Europaallee 19, D-66113 Saarbrücken
+info@hightec-rt.com
++49-681-92613-16
+www.hightec-rt.com

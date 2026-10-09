@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>RISC-V v11.0.0 测试结果</title>
+<style>
+  @page {
+    size: A4;
+    margin: 1.6cm 1.5cm 1.8cm 1.5cm;
+    @bottom-center { content: counter(page); font-size: 9pt; color: #888; font-family: "Microsoft YaHei", sans-serif; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", "SimSun", sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    color: #1a1a1a;
+    margin: 0;
+  }
+  h1.doctitle {
+    font-size: 17pt;
+    text-align: center;
+    margin: 0 0 2px 0;
+    letter-spacing: 1px;
+  }
+  .docsub {
+    text-align: center;
+    font-size: 10pt;
+    color: #555;
+    margin: 0 0 4px 0;
+  }
+  .docmeta {
+    font-size: 9pt;
+    color: #444;
+    border-top: 1px solid #bbb;
+    border-bottom: 1px solid #bbb;
+    padding: 5px 4px;
+    margin: 6px 0 14px 0;
+  }
+  h2.feature {
+    font-size: 12pt;
+    font-weight: bold;
+    margin: 16px 0 6px 0;
+    padding: 4px 8px;
+    background: #eef1f5;
+    border-left: 4px solid #2f5b8c;
+    page-break-after: avoid;
+  }
+  p { margin: 5px 0; }
+  .note {
+    background: #fff8e6;
+    border: 1px solid #e6d9a8;
+    padding: 6px 10px;
+    margin: 8px 0;
+    font-size: 10pt;
+  }
+  pre {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 8.8pt;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    padding: 8px 10px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 6px 0;
+    line-height: 1.35;
+  }
+  code.inline {
+    font-family: Consolas, "Courier New", monospace;
+    background: #f0f0f0;
+    padding: 0 3px;
+    font-size: 9.3pt;
+  }
+  table {
+    border-collapse: collapse;
+    margin: 8px 0;
+    width: 100%;
+    font-size: 9.5pt;
+  }
+  th, td {
+    border: 1px solid #999;
+    padding: 4px 8px;
+    text-align: center;
+  }
+  th { background: #eef1f5; }
+  .result-pass { color: #1a7a1a; font-weight: bold; }
+  .result-na   { color: #8a6d1a; font-weight: bold; }
+  ul { margin: 5px 0 5px 22px; padding: 0; }
+  li { margin: 2px 0; }
+  .small { font-size: 9pt; color: #555; }
+  .keep { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<h1 class="doctitle">RISC-V v11.0.0 测试结果</h1>
+<p class="docsub">HighTec RISC-V Development Platform 11.0.0 &nbsp;|&nbsp; Release Notes 功能验证</p>
+<div class="docmeta">
+  被测工具链：C:\HighTec\toolchains\riscv\v11.0.0&nbsp;&nbsp;（clang 11.0.0 based on LLVM 21.1.8，built 2026-09-02）<br>
+  测试主机：Windows x86-64&nbsp;&nbsp;|&nbsp;&nbsp;测试日期：2026-09-04&nbsp;&nbsp;|&nbsp;&nbsp;许可证：RLM（C:\HighTec\licenses，riscv-llvm 节点锁定）
+</div>
+
+<p>本文档按照 <i>releasenotes.pdf</i>（Release 11.0.0）列出的新增特性，逐项验证本机可测试的内容，测试代码与命令详见 <code class="inline">RISCV_v11.0.0_TestItems_Guide.txt</code>。</p>
+
+<!-- ============ 1 ============ -->
+<h2 class="feature">[CCRM-115] Upgrade to LLVM 21.1.8</h2>
+<p>验证 clang / lld / llvm 工具版本。三个工具均报告基于 LLVM 21.1.8，与 release notes 一致。</p>
+<pre>clang.exe   --version  ->  HighTec clang version 11.0.0 (...) based on LLVM 21.1.8 built on 2026-09-02
+ld.lld.exe  --version  ->  HighTec LLD version 11.0.0 (...) based on LLVM 21.1.8 built on 2026-09-02
+llvm-nm.exe --version  ->  ... based on LLVM 21.1.8 built on 2026-09-02</pre>
+<p>测试结果：<span class="result-pass">通过</span>。</p>
+
+<!-- ============ 2 ============ -->
+<h2 class="feature">[CCRM-123] Upgrade to Reprise Licensing Manager (RLM) 18</h2>
+<p>验证内嵌 RLM 客户端版本与许可证检出机制。通过设置 <code class="inline">RLM_DIAGNOSTICS</code> 触发 RLM 诊断文件，直接读取到内嵌 RLM 版本号。</p>
+<pre>RLM Diagnostics at 09/04/2026 14:11
+    RLM version: 18.0BL1
+    RLM platform: x64_w4
+    OS version: 6.2
+    ISV name: hightec-rt
+    Product: riscv-llvm  v2026.12  OK</pre>
+<p>正常编译（RLM_LICENSE=C:\HighTec\licenses）许可证检出成功，退出码 0；将 RLM_LICENSE 指向无效路径时报错 <code class="inline">Can't read license data (-102)</code>，机制正常。</p>
+<p>测试结果：<span class="result-pass">通过</span>（RLM 18.0BL1 确认）。</p>
+
+<!-- ============ 3 ============ -->
+<h2 class="feature">[CCRM-169] Upgrade to Picolibc C library 1.8.11</h2>
+<p>检查 C 库头文件版本宏，与 release notes 一致。</p>
+<pre>riscv\include\picolibc.h:
+  #define __PICOLIBC_VERSION__ "1.8.11"
+  #define _NEWLIB_VERSION     "4.3.0"</pre>
+<p>测试结果：<span class="result-pass">通过</span>。</p>
+
+<!-- ============ 4 ============ -->
+<h2 class="feature">[CCRM-176] Emit functions and static allocated variables into unique sections by default</h2>
+<p>11.0.0 中 <code class="inline">-ffunction-sections</code> / <code class="inline">-fdata-sections</code>（以及 <code class="inline">-fpragma-function-sections</code> / <code class="inline">-fpragma-data-sections</code>）默认使能，函数与静态分配变量默认生成独立节。不使用任何 <code class="inline">-ffunction-sections/-fdata-sections</code> 选项直接编译，检查目标文件节名：</p>
+<pre>// sections_default.c / rodata_test.c（默认编译）
+llvm-objdump -h sections_default.o  ->
+    .text.func_a    .text.func_b    .text.helper        (函数)
+    .data.global_init .data.static_init                 (已初始化数据)
+    .bss.global_zero .bss.static_zero                   (零初始化数据)
+    .rodata.table   .rodata.msg                         (常量数据)</pre>
+<p>通过 <code class="inline">clang -###</code> 确认驱动默认传递 <code class="inline">-ffunction-sections -fdata-sections -fpragma-function-sections -fpragma-data-sections</code>。</p>
+<div class="note"><b>注意事项：</b>默认独立节会改变输出段的组织方式，用户工程链接脚本需包含 <code class="inline">*(.text*)</code>、<code class="inline">*(.data*)</code>、<code class="inline">*(.bss*)</code> 等带通配符的匹配规则，否则内容可能被遗漏。对自定义段（<code class="inline">#pragma clang section</code>）导致的问题，可通过 <code class="inline">-fno-pragma-function-sections -fno-pragma-data-sections</code> 关闭，迁移方法参考 HighTec 移植指南（与 TriCore-llvm v11.0.0 一致）。</div>
+<p>测试结果：<span class="result-pass">通过</span>。</p>
+
+<!-- ============ 5 ============ -->
+<h2 class="feature">[CCRM-176] Garbage collection of unreferenced sections by the linker is enabled by default</h2>
+<p>11.0.0 中链接器默认开启未引用节回收（经 clang 驱动默认传递 <code class="inline">--gc-sections</code>）。通过独立未使用的函数/变量验证：</p>
+<pre>// gc_default.c
+int used_global = 42;    int unused_global = 99;   // unused_global 不被引用
+int used_func(int x){ return x + used_global; }
+int unused_func(int x){ return x * unused_global; } // unused_func 不被引用
+void _start(void){ (void)used_func(1); for(;;); }</pre>
+<p>经 clang 驱动默认链接后，用 llvm-nm 检查最终 ELF：</p>
+<pre>clang ... -nostdlib -T gc_default.ld gc_default.o -o gc_default_clang.elf
+llvm-nm gc_default_clang.elf  ->  仅 _start / used_func / used_global
+                                   unused_func / unused_global 被回收
+（-### 确认驱动默认传 --gc-sections）</pre>
+<p>对照：直接调用 ld.lld 且不带 <code class="inline">--gc-sections</code> 时未引用符号保留（符合 lld 原生语义）；显式 <code class="inline">--gc-sections</code> 时回收，与 clang 驱动默认行为一致。</p>
+<p>测试结果：<span class="result-pass">通过</span>。</p>
+
+<!-- ============ 6 ============ -->
+<h2 class="feature">[CCRM-110] Add option -Wsection-feature to warn when a function or global variable is affected by more than one section defining feature</h2>
+<p>当同一个函数/变量被赋予多个段特性（<code class="inline">__attribute__((section))</code> 与 <code class="inline">#pragma clang section</code>）时，开启该选项后编译器给出警告。</p>
+<pre>// section_feature.c（按 userguide 示例）
+#pragma clang section bss=".test1"
+__attribute__((section(".test11"))) int test1;      // 警告
+#pragma clang section bss=""
+#pragma clang section text=".test2"
+__attribute__((section(".test22"))) void test2(void){}  // 警告
+#pragma clang section text=""
+#pragma clang section bss=".test3"
+#pragma clang section bss=".test33" int test3;       // 警告（pragma 覆盖）
+#pragma clang section bss=""</pre>
+<pre>clang -Wsection-feature -c section_feature.c  ->  4 条警告，例如：
+  warning: .test11 uses more than one section feature [-Wsection-feature]
+  warning: '#pragma clang section' overrides previous active section
+clang -Wno-section-feature ...  ->  无警告（可抑制）
+clang（默认，不带选项）            ->  无警告（选项默认关闭）</pre>
+<p><b>实测附加行为：</b>由于 <code class="inline">-ffunction-sections/-fdata-sections</code> 默认开启，单独的 <code class="inline">__attribute__((section))</code> 也会被判定为"超过一个 section 特性"而告警（即使加 <code class="inline">-fno-function-sections -fno-data-sections</code> 亦然），属本工具链实现行为，使用该选项时需注意。</p>
+<p>测试结果：<span class="result-pass">通过</span>。</p>
+
+<!-- ============ 7 ============ -->
+<h2 class="feature">[CCRM-150] Add option -fno-zero-initialized-in-bss-gcc as a GCC compatible variant of -fno-zero-initialized-in-bss</h2>
+<p>默认情况下全局/静态变量初始化为 0 或不初始化都放入 <code class="inline">.bss</code>。GCC 中 <code class="inline">-fno-zero-initialized-in-bss</code> 用于区分显式 =0 与未初始化变量；为保证 GCC 兼容性，HighTec 新增 <code class="inline">-fno-zero-initialized-in-bss-gcc</code> 变体（仅把<b>显式 =0</b> 的变量移出 .bss，隐式未初始化变量仍留在 .bss）。</p>
+<pre>// bss_test.c
+int implicit_zero;      // 隐式零初始化
+int explicit_zero = 0;  // 显式零初始化
+int nonzero = 7;        // 非零对照</pre>
+<pre>llvm-nm -S obj\bss_*.o  (B=\.bss 节，D=\.data 节)
+  变量           默认      -fno-zero-init-in-bss   -fno-zero-init-in-bss-gcc
+  implicit_zero   B        D                       B
+  explicit_zero   B        D                       D
+  nonzero         D        D                       D</pre>
+<p>三组行为与 userguide 表格完全一致（-gcc 变体仅把显式 =0 移到 .data，匹配 GCC 行为）。</p>
+<p>测试结果：<span class="result-pass">通过</span>。</p>
+
+<!-- ============ 8 ============ -->
+<h2 class="feature">[TCGEN-241] Eliminated dependency of the toolchain binaries to the MSVC 2015 redistributable on Windows</h2>
+<p>用 <code class="inline">llvm-objdump -p</code> 检查全部工具链可执行文件/DLL 的导入依赖，确认不含 MSVC 2015 再发行运行库。</p>
+<pre>clang.exe / ld.lld.exe / llvm-nm.exe / llvm-objcopy.exe / clangd.exe / libclang.dll
+  导入 DLL 均为 Windows 系统 DLL：
+    KERNEL32, ADVAPI32, ntdll, WS2_32, USER32, OLEAUT32,
+    bcrypt, WINHTTP, CRYPT32, IPHLPAPI, VERSION
+  未发现 msvcp140.dll / vcruntime140.dll / msvcr*.dll</pre>
+<p>测试结果：<span class="result-pass">通过</span>。</p>
+
+<!-- ============ 9 ============ -->
+<h2 class="feature">[附加] 端到端冒烟测试（整体 toolchain 可用性）</h2>
+<p>使用 picolibc 完整编译+链接一个可执行 ELF，验证 clang / lld / crt0 / C 库全链路可用。</p>
+<pre>// main.c（使用 printf/memcpy 等 picolibc 库函数）+ syscalls.c（裸机 read/write/lseek/close stub）
+clang -target riscv32-unknown-elf -march=rv32imafdc -mabi=ilp32 \
+      -T ...\riscv\lib\rv32imafdc\ilp32\except\picolibc.ld \
+      -L ...\except  crt0.o  main.c syscalls.c  -lc -lm  -o main.elf
+
+llvm-readelf -h main.elf ->  ELF32 / Machine: RISC-V / Entry: 0x80000000
+llvm-size     main.elf   ->  text 34752  data 96  bss 4624
+llvm-nm       main.elf   ->  含 _start / main / printf（来自 picolibc）/ add</pre>
+<p>测试结果：<span class="result-pass">通过</span>。</p>
+
+<!-- ============ 10 ============ -->
+<h2 class="feature">[附加] 累积特性抽测（1.1.0 ~ 1.3.0）</h2>
+<table>
+  <tr><th>特性</th><th>命令</th><th>结果</th></tr>
+  <tr><td>目标 CPU ifx-rc1-base-h-s（TCRV-181）</td><td><code>-mcpu=ifx-rc1-base-h-s</code></td><td><span class="result-pass">编译通过</span></td></tr>
+  <tr><td>目标 CPU ifx-rc1-perf-h-rt（TCRV-202）</td><td><code>-mcpu=ifx-rc1-perf-h-rt</code></td><td><span class="result-pass">编译通过</span></td></tr>
+  <tr><td>rv32e 扩展（TCRV-195）</td><td><code>-march=rv32e -mabi=ilp32e</code></td><td><span class="result-pass">编译通过</span>（带 -Wnon-hightec 提示，rv32e 不在 HighTec 支持 multilib 列表，属正常）</td></tr>
+  <tr><td>rv64 -mcmodel=large（TCRV-179）</td><td><code>-march=rv64imafd -mabi=lp64d -mcmodel=large</code></td><td><span class="result-pass">编译通过</span></td></tr>
+  <tr><td>multilib 增删（TCRV-221）</td><td>检查 <code>riscv\lib</code> 目录</td><td><span class="result-pass">与 1.3.0 清单一致</span></td></tr>
+</table>
+
+<!-- ============ 总结 ============ -->
+<h2 class="feature">测试总结</h2>
+<ul>
+  <li>11.0.0 新增特性中，本机可测试项（LLVM 21.1.8、RLM 18、Picolibc 1.8.11、默认独立节、默认 GC、-Wsection-feature、-fno-zero-initialized-in-bss-gcc、去除 MSVC2015 依赖、端到端冒烟、累积特性抽测）<b>全部测试通过</b>。</li>
+  <li>默认开启 <code class="inline">-ffunction-sections/-fdata-sections/--gc-sections</code> 属行为变更，会对用户工程有影响：链接脚本需匹配 <code class="inline">*(.text*)</code> 等通配规则；自定义段问题可用 <code class="inline">-fno-pragma-function-sections -fno-pragma-data-sections</code> 处理。</li>
+  <li><span class="result-na">本机无法测试项：</span>CCRM-10（ARM64 Linux 主机支持，需对应平台实测）、CCRM-78（SPDX 3.0.1 FOSS 报告，未随安装包落盘，需官方门户获取）、CCRM-85 / TCTRIC-1348 / TCTRIC-1349（安装器改进，需交互运行安装器验证）。</li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,397 @@
+================================================================================
+ HighTec RISC-V v11.0.0 Release Notes 测试项说明文档
+ Test Item Guide : 测试项 <-> 测试代码 <-> 编译/验证规则
+================================================================================
+ 被测工具链 : C:\HighTec\toolchains\riscv\v11.0.0
+ 测试目录   : C:\work\code\riscv11_test
+ 测试结果   : RISCV_v11.0.0_ReleaseNotes_TestReport.txt（本目录）
+ 本文档说明 : 记录每个测试项对应的测试代码文件，以及每段测试代码
+              如何编译、如何验证、通过标准是什么，以便复现。
+ 测试日期   : 2026-09-04
+================================================================================
+
+0. 通用环境与约定（所有测试均适用）
+--------------------------------------------------------------------------------
+ [工具链路径] TC=C:\HighTec\toolchains\riscv\v11.0.0
+              BIN=%TC%\bin
+ [重要·命令写法说明]（先读这一段，否则命令会报错）
+   - 本文档用 "TC" 作为工具链路径的【缩写占位符】，它【不是】系统环境变量，
+     工具链本身也【不要求】配置 TC。真正必须的环境变量只有 RLM_LICENSE（见下）。
+   - 文档中的命令按 cmd(命令提示符) 语法书写，使用 %TC% 引用。
+     若在 PowerShell 中执行，请先定义当前会话变量，并把 %TC% 换成 $env:TC：
+        $env:TC = "C:\HighTec\toolchains\riscv\v11.0.0"
+     然后命令写成（注意用 & 调用）：
+        & "$env:TC\bin\llvm-nm.exe" build\gc_default_clang.elf
+     或者干脆用完整路径（无需任何变量）：
+        C:\HighTec\toolchains\riscv\v11.0.0\bin\llvm-nm.exe build\gc_default_clang.elf
+   - 若想永久配置（可选，非必须），在 PowerShell 执行：
+        setx TC "C:\HighTec\toolchains\riscv\v11.0.0"
+     之后【重新打开终端】即可用 $env:TC；把 bin 加进 PATH 可用：
+        setx PATH "$env:PATH;C:\HighTec\toolchains\riscv\v11.0.0\bin"
+   - 不要直接把 %TC% 粘进 PowerShell，会报 "无法加载模块 %TC%"。
+ [许可证]    RLM_LICENSE 需指向 C:\HighTec\licenses（本机系统环境变量已配置；
+             单个 PowerShell 会话可显式执行：
+               $env:RLM_LICENSE="C:\HighTec\licenses"
+             许可证文件: riscv_llvm_acc12281_lic_nodelocked_sen16164.lic）
+ [工作目录]  所有相对路径均相对 C:\work\code\riscv11_test 执行
+ [编码]      .c 源文件使用 ASCII/UTF-8；PowerShell 下用 cmd /c 调用 clang 以
+             避免 stderr 被 PowerShell 重定向混叠（编译输出可用 2> 重定向到文件）
+ [测试代码约定] 每个测试项使用独立 .c 源文件，放在 src\ 下；编译产物放 obj\，
+             链接产物放 build\。
+--------------------------------------------------------------------------------
+
+1. 测试项 <-> 测试代码文件 总览
+--------------------------------------------------------------------------------
+ 序号   Release 特性                   测试代码文件                验证方式
+ ----   ------------------------------ -------------------------- ----------
+ T1     CCRM-115  LLVM 21.1.8          (无，工具版本)              clang --version
+ T2     CCRM-123  RLM 18               (无专用，用 sections_default) 编译+RLM诊断
+ T3     CCRM-169  Picolibc 1.8.11      (无，查头文件)              picolibc.h
+ T4     CCRM-10   ARM64 Linux 主机     (无)                       N/A
+ T5     CCRM-176  默认 unique sections src\sections_default.c      llvm-objdump -h
+                                         src\rodata_test.c
+ T6     CCRM-176  lld 默认 GC          src\gc_default.c + .ld      llvm-nm
+ T7     CCRM-110  -Wsection-feature    src\section_feature.c       clang 警告输出
+                                         src\section_feature_min.c
+ T8     CCRM-150  -fno-zero-init-bss-gcc src\bss_test.c            llvm-nm -S
+ T9     CCRM-78   SPDX 3.0.1 报告      (无，检索文件)             N/A
+ T10    TCGEN-241 MSVC2015 依赖消除    (无，查二进制)              llvm-objdump -p
+ T11    安装器 3 项改进                (无)                       N/A
+ T12    端到端冒烟                     src\main.c + syscalls.c     llvm-readelf/size/nm
+ T13    累积特性抽测(1.x)              (复用 sections_default.c)   编译通过性
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+2. 各测试项详细：测试代码、编译命令、验证命令、通过标准
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------
+ T1  CCRM-115  升级到 LLVM 21.1.8                            [无测试代码]
+--------------------------------------------------------------------------
+ 说明: 验证 clang/lld/llvm 工具均基于 LLVM 21.1.8。
+ 命令:
+   "%TC%\bin\clang.exe"   --version
+   "%TC%\bin\ld.lld.exe"  --version
+   "%TC%\bin\llvm-nm.exe" --version
+ 预期输出: 均含 "based on LLVM 21.1.8 built on 2026-09-02"
+ 通过标准: 版本号字符串包含 "LLVM 21.1.8"。
+
+--------------------------------------------------------------------------
+ T2  CCRM-123  升级到 RLM 18                                  [无专用测试代码]
+--------------------------------------------------------------------------
+ 说明: 验证内嵌 RLM 客户端版本为 18，且许可证检出机制正常。
+       使用 src\sections_default.c 作为任意可编译输入即可。
+ 前置条件:
+   - RLM_LICENSE 已指向 C:\HighTec\licenses（本机系统环境变量已配置；
+     当前 PowerShell 会话可显式设置 $env:RLM_LICENSE="C:\HighTec\licenses"）
+   - 许可证文件 riscv_llvm_acc12281_lic_nodelocked_sen16164.lic 存在
+   - 任意可编译 .c 输入（本项使用 src\sections_default.c）
+ 原理说明(关键取证手段):
+   工具链自身没有 "--version 打印 RLM 版本" 的入口。RLM 客户端支持环境变量
+   RLM_DIAGNOSTICS：设置非零值后，每次许可证初始化(rlm_init)会在【当前工作
+   目录】输出数字命名的诊断文件（本机实测生成 "2"、"3" 两个文件），文件头即
+   打印内嵌 RLM 客户端版本号。这是读取内嵌 RLM 版本最直接的方法。
+ 步骤1(许可证检出机制, 正向):
+   直接编译一次，验证许可证检出成功：
+     cd C:\work\code\riscv11_test
+     %TC%\bin\clang.exe -target riscv32-unknown-elf -march=rv32imac `
+         -mabi=ilp32 -c src\sections_default.c -o obj\tl.o
+     echo %ERRORLEVEL%          (PowerShell: echo $LASTEXITCODE)
+   通过标准: 退出码 0（riscv-llvm 许可证检出成功）。
+ 步骤2(设置诊断开关并触发):
+   PowerShell 下：
+     $env:RLM_LICENSE="C:\HighTec\licenses"
+     $env:RLM_DIAGNOSTICS="2"
+     %TC%\bin\clang.exe -target riscv32-unknown-elf -march=rv32imac `
+         -mabi=ilp32 -c src\sections_default.c -o obj\tl2.o
+   (PowerShell 等价: & "$env:TC\bin\clang.exe" ... )
+   编译成功后，当前工作目录 C:\work\code\riscv11_test 下出现数字命名的
+   诊断文件（本机为 "2" 与 "3"）。文件以 "RLM Diagnostics at ..." 开头。
+ 步骤3(读取内嵌 RLM 版本号, 关键):
+   PowerShell 下读取诊断文件头部：
+     Get-Content .\2 -TotalCount 6
+   预期输出:
+     RLM Diagnostics at 09/04/2026 14:11
+         RLM version: 18.0BL1
+         RLM platform: x64_w4
+         OS version: 6.2
+         ISV name: hightec-rt
+         Hostname: hightec-071
+   其中 "RLM version: 18.0BL1" 即内嵌 RLM 客户端版本 → 确认 RLM 18。
+ 步骤4(查看 riscv-llvm 许可证检出状态, 同一文件):
+     Select-String -Path .\2 -Pattern "riscv-llvm"
+   预期输出:
+     In license file C:\HighTec\licenses\riscv_llvm_acc12281_lic_nodelocked_sen16164.lic
+           (no server)
+         riscv-llvm v2026.12 OK
+   含义: 节点锁定(无 server)许可证，riscv-llvm v2026.12 版本可正常检出(OK)。
+ 诊断文件关键字段解读:
+     字段                                    含义
+     RLM version: 18.0BL1                  内嵌 RLM 客户端版本(本测试目标)
+     RLM platform: x64_w4                  RLM 平台 = Windows 64 位
+     OS version: 6.2                       Windows 内核版本 6.2
+     ISV name: hightec-rt                  软件供应商 ID
+     Hostname / User / Working directory   主机名、用户名、触发时工作目录
+                                           (即诊断文件生成位置)
+     RLM hostid list                       节点锁定绑定的主机特征
+                                           (uuid/网卡MAC/磁盘序列号等)
+     License files                         RLM_LICENSE 目录下扫描到的全部 .lic
+     In license file ... .lic              逐文件列出特性检出状态:
+       riscv-llvm v2026.12 OK               OK=可检出; error:-3/-2=不可检出
+ 通过标准: 诊断文件头部打印 "RLM version: 18.0BL1"，且
+           "riscv-llvm v2026.12 OK"。
+ 负向验证(可选, 许可证机制):
+   将 RLM_LICENSE 指向不存在的路径后编译：
+     $env:RLM_LICENSE="C:\nonexistent"
+     %TC%\bin\clang.exe -target riscv32-unknown-elf -march=rv32imac `
+         -mabi=ilp32 -c src\sections_default.c -o obj\tl3.o
+   预期 stderr: Error checking out 'riscv-llvm' license:
+                Can't read license data (-102)
+   -102 = 读取不到许可证数据(通常因 RLM_LICENSE 路径无效)，与过期/无权限
+   (-3 等)不同；检出机制正确响应错误。
+ 清理与注意事项:
+   - 诊断文件生成在【当前工作目录】且为数字命名(本机 "2"/"3")，非固定文件名，
+     需按目录内"新增文件"识别；验证后建议归档或删除：
+        Move-Item .\2 build\rlm_diagnostics.txt          (归档)
+        Move-Item .\3 build\rlm_diagnostics2.txt
+     (本机已归档，见 build\rlm_diagnostics.txt / rlm_diagnostics2.txt)
+   - 恢复环境变量，避免后续每次编译都生成诊断文件：
+        Remove-Item Env:RLM_DIAGNOSTICS
+        $env:RLM_LICENSE="C:\HighTec\licenses"
+   - 诊断文件含主机特征(hostid)等敏感信息，归档/交付时注意脱敏。
+
+--------------------------------------------------------------------------
+ T3  CCRM-169  升级到 Picolibc 1.8.11                         [无测试代码]
+--------------------------------------------------------------------------
+ 说明: 检查 C 库头文件中的版本宏。
+ 命令:
+   findstr PICOLIBC %TC%\riscv\include\picolibc.h
+ 预期输出:
+   #define __PICOLIBC_VERSION__ "1.8.11"
+ 通过标准: __PICOLIBC_VERSION__ 等于 "1.8.11"。
+
+--------------------------------------------------------------------------
+ T4  CCRM-10  支持 ARM64 Linux 主机                          [N/A]
+--------------------------------------------------------------------------
+ 说明: 本机为 Windows x86-64，无法运行 ARM64 Linux 版本，无测试代码。
+       需在 ARM64 Linux 主机实测。
+
+--------------------------------------------------------------------------
+ T5  CCRM-176  函数与静态分配变量默认生成 unique sections    [src\sections_default.c]
+--------------------------------------------------------------------------
+ 说明: 验证不添加 -ffunction-sections/-fdata-sections 时，默认即生成
+       .text.<func> / .data.<var> / .bss.<var> / .rodata.<var> 独立节。
+ 测试代码内容:
+   src\sections_default.c
+     - int global_init = 5;        /* 预期 .data.global_init  */
+     - static int static_init = 6; /* 预期 .data.static_init  */
+     - int global_zero;            /* 预期 .bss.global_zero   */
+     - static int static_zero;     /* 预期 .bss.static_zero   */
+     - func_a / helper(static) / func_b  /* 预期 .text.func_a / .text.helper / .text.func_b */
+   src\rodata_test.c（补充常量用例）
+     - const int table[4]; const char msg[];  /* 预期 .rodata.table / .rodata.msg */
+ 编译命令（注意: 不能加 -ffunction-sections / -fdata-sections）:
+   %TC%\bin\clang.exe -target riscv32-unknown-elf -march=rv32imac -mabi=ilp32 `
+       -c src\sections_default.c -o obj\sections_default.o
+   %TC%\bin\clang.exe -target riscv32-unknown-elf -march=rv32imac -mabi=ilp32 `
+       -c src\rodata_test.c -o obj\rodata_test.o
+ 验证命令:
+   %TC%\bin\llvm-objdump.exe -h obj\sections_default.o
+   %TC%\bin\llvm-objdump.exe -h obj\rodata_test.o
+ 预期输出: 节列表包含 .text.func_a / .text.func_b / .text.helper /
+           .data.global_init / .data.static_init / .bss.global_zero /
+           .bss.static_zero / .rodata.table / .rodata.msg
+ 附加确认(驱动默认参数):
+   %TC%\bin\clang.exe -target riscv32-unknown-elf -march=rv32imac -mabi=ilp32 `
+       -### -c src\sections_default.c
+   输出 cc1 参数中应包含 "-ffunction-sections" "-fdata-sections"
+   "-fpragma-function-sections" "-fpragma-data-sections"。
+ 通过标准: 默认编译即出现上述独立节，且驱动默认传递 -f/-fdata-sections。
+
+--------------------------------------------------------------------------
+ T6  CCRM-176  lld 默认启用未引用节 GC                       [src\gc_default.c + .ld]
+--------------------------------------------------------------------------
+ 说明: 验证经 clang 驱动链接时默认开启 --gc-sections，未引用函数/变量被回收。
+ 测试代码内容:
+   src\gc_default.c
+     - used_global / used_func   /* 被 _start 引用，必须保留 */
+     - unused_global / unused_func /* 不被引用，默认应被回收 */
+     - void _start(void){ used_func(1); for(;;); }  /* 入口 */
+   src\gc_default.ld             /* 最小链接脚本, ENTRY(_start), RAM@0x80000000 */
+ 步骤1 编译:
+   %TC%\bin\clang.exe -target riscv32-unknown-elf -march=rv32imac -mabi=ilp32 `
+       -c src\gc_default.c -o obj\gc_default.o
+ 步骤2 经 clang 驱动链接(默认, 应触发 GC):
+   %TC%\bin\clang.exe -target riscv32-unknown-elf -march=rv32imac -mabi=ilp32 `
+       -nostdlib -T src\gc_default.ld obj\gc_default.o `
+       -o build\gc_default_clang.elf
+ 验证:   %TC%\bin\llvm-nm.exe build\gc_default_clang.elf
+ 预期:   仅 _start / used_func / used_global；unused_func / unused_global 被回收。
+ 附加确认(驱动默认传 --gc-sections):
+   ... 上述链接命令加 -###，可见 ld.lld 参数含 "--gc-sections"。
+ 对照(直接 ld.lld):
+   无 GC: %TC%\bin\ld.lld.exe -m elf32lriscv -T src\gc_default.ld `
+             obj\gc_default.o -o build\gc_default_default.elf
+          -> unused_func / unused_global 保留(无 GC)
+   显式 GC: %TC%\bin\ld.lld.exe -m elf32lriscv --gc-sections `
+             -T src\gc_default.ld obj\gc_default.o `
+             -o build\gc_default_explicit.elf
+          -> 同 clang 驱动，被回收
+ 通过标准: 经 clang 驱动默认链接时未引用节被回收；显式 --gc-sections 一致；
+          裸 ld.lld 不带该选项时保留（符合 lld 原生语义）。
+
+--------------------------------------------------------------------------
+ T7  CCRM-110  新增 -Wsection-feature 警告选项               [src\section_feature.c]
+--------------------------------------------------------------------------
+ 说明: 验证警告选项能识别、能触发、能抑制。
+ 测试代码内容:
+   src\section_feature.c（按 userguide 示例）
+     - #pragma clang section bss=".test1" + __attribute__((section(".test11"))) int test1;
+       -> 预期警告 (attribute 覆盖 pragma)
+     - #pragma clang section text=".test2" + attribute test2()
+       -> 预期警告
+     - #pragma clang section bss=".test3" 后紧跟 bss=".test33"
+       -> 预期警告 (pragma 覆盖前一 pragma)
+     - __attribute__((section(".single"))) int ok_single;
+       -> 本工具链实测也告警(因默认 unique-sections 使 attribute 计为多特性)
+     - 纯 pragma(ok_pragma) / 无任何 section 特性的变量 -> 不告警
+   src\section_feature_min.c（最小触发用例，单独 attribute 是否告警）
+ 编译命令（三组对照，stderr 重定向到文件以便核对）:
+   (1) -Wsection-feature
+       %TC%\bin\clang.exe -target riscv32-unknown-elf -march=rv32imac -mabi=ilp32 `
+           -Wsection-feature -c src\section_feature.c -o obj\section_feature.o
+       -> 预期 4 条 warning:  "... uses more than one section feature
+          [-Wsection-feature]" 及 "'#pragma clang section' overrides previous
+          active section"
+   (2) -Wno-section-feature
+       ... -Wno-section-feature ... -> 预期 0 条警告
+   (3) 默认(不带选项) -> 预期 0 条警告(该选项默认关闭)
+ 通过标准: -Wsection-feature 触发警告、-Wno- 与默认均抑制；选项名被 clang 接受。
+
+--------------------------------------------------------------------------
+ T8  CCRM-150  新增 -fno-zero-initialized-in-bss-gcc          [src\bss_test.c]
+--------------------------------------------------------------------------
+ 说明: 验证 GCC 兼容变体：仅显式 =0 的全局变量被移出 .bss，隐式零初始化
+       变量仍留在 .bss。
+ 测试代码内容:
+   src\bss_test.c
+     - int implicit_zero;   /* 隐式零初始化 */
+     - int explicit_zero = 0; /* 显式零初始化 */
+     - int nonzero = 7;     /* 非零，恒 .data 对照 */
+ 三组编译命令:
+   (1) 默认
+       %TC%\bin\clang.exe -target riscv32-unknown-elf -march=rv32imac -mabi=ilp32 `
+           -c src\bss_test.c -o obj\bss_default.o
+   (2) -fno-zero-initialized-in-bss
+       ... -fno-zero-initialized-in-bss -c src\bss_test.c -o obj\bss_no-zero-bss.o
+   (3) -fno-zero-initialized-in-bss-gcc
+       ... -fno-zero-initialized-in-bss-gcc -c src\bss_test.c `
+           -o obj\bss_no-zero-bss-gcc.o
+ 验证命令: %TC%\bin\llvm-nm.exe -S obj\bss_*.o
+ 预期结果(B=bss节, D=data节):
+   变量          默认      -fno-zero-init-in-bss    -fno-zero-init-in-bss-gcc
+   implicit_zero  B        D                       B
+   explicit_zero  B        D                       D
+   nonzero        D        D                       D
+ 通过标准: 三组符号归属与上表一致（-gcc 变体仅把显式 =0 移到 .data）。
+
+--------------------------------------------------------------------------
+ T9  CCRM-78  提供 SPDX 3.0.1 FOSS 报告                       [N/A]
+--------------------------------------------------------------------------
+ 说明: 全盘检索安装目录(.spdx/.json/.csv/.html)未找到 SPDX 报告；
+       licenses\ 下仅 LICENSE.TXT 与 CREDITS.TXT。判断为独立交付物
+       (官方门户提供)，无测试代码。
+
+--------------------------------------------------------------------------
+ T10 TCGEN-241  消除对 MSVC 2015 运行库依赖                  [无测试代码]
+--------------------------------------------------------------------------
+ 说明: 检查工具链所有可执行/DLL 的导入依赖，确认不含 msvcp140/vcruntime140/
+       msvcr*.dll。
+ 命令:
+   %TC%\bin\llvm-objdump.exe -p %TC%\bin\clang.exe     | findstr "DLL Name"
+   %TC%\bin\llvm-objdump.exe -p %TC%\bin\ld.lld.exe    | findstr "DLL Name"
+   %TC%\bin\llvm-objdump.exe -p %TC%\bin\llvm-nm.exe   | findstr "DLL Name"
+   %TC%\bin\llvm-objdump.exe -p %TC%\bin\llvm-objcopy.exe | findstr "DLL Name"
+   %TC%\bin\llvm-objdump.exe -p %TC%\bin\clangd.exe    | findstr "DLL Name"
+   %TC%\bin\llvm-objdump.exe -p %TC%\bin\libclang.dll  | findstr "DLL Name"
+ 预期: 仅 KERNEL32/ADVAPI32/ntdll/WS2_32/USER32/OLEAUT32/bcrypt/WINHTTP/
+       CRYPT32/IPHLPAPI/VERSION 等系统 DLL；无 msvcp140/vcruntime140/msvcr*。
+ 通过标准: 全 bin 目录检索不到任何 MSVC 2015 再发行 DLL 依赖。
+
+--------------------------------------------------------------------------
+ T11 [安装器改进] CCRM-85 / TCTRIC-1348 / TCTRIC-1349          [N/A]
+--------------------------------------------------------------------------
+ 说明: 属于安装器(uninstall.exe)交互行为，未执行安装/卸载，无测试代码。
+
+--------------------------------------------------------------------------
+ T12 端到端冒烟测试（整体 toolchain 可用性）                 [src\main.c + syscalls.c]
+--------------------------------------------------------------------------
+ 说明: 用 picolibc 完整编译+链接一个可执行 ELF，验证 clang/lld/库/crt0 全链路。
+ 测试代码内容:
+   src\main.c     - 使用 printf/strcpy/memcpy 等 picolibc 库函数 + 自写 add()
+   src\syscalls.c - 提供裸机底层 read/write/lseek/close 等 POSIX stub
+                    (picolibc stdio 依赖，无 OS 时必需；注意用 POSIX 名
+                    不带下划线: read/write/lseek/close)
+ 编译+链接命令:
+   %TC%\bin\clang.exe -target riscv32-unknown-elf -march=rv32imafdc -mabi=ilp32 `
+       -T %TC%\riscv\lib\rv32imafdc\ilp32\except\picolibc.ld `
+       -L %TC%\riscv\lib\rv32imafdc\ilp32\except `
+       %TC%\riscv\lib\rv32imafdc\ilp32\except\crt0.o `
+       src\main.c src\syscalls.c -lc -lm `
+       -o build\main.elf
+ 验证命令:
+   %TC%\bin\llvm-readelf.exe -h build\main.elf   (预期 ELF32/RISC-V/EXEC,
+                                                  Entry 0x80000000)
+   %TC%\bin\llvm-size.exe     build\main.elf     (预期 text≈34752 data≈96 bss≈4624)
+   %TC%\bin\llvm-nm.exe       build\main.elf     (含 _start/main/printf/add)
+ 通过标准: 链接 exit 0，入口正确，picolibc 库符号(printf)成功解析。
+
+--------------------------------------------------------------------------
+ T13 累积 release 特性抽测(1.x 系列)                         [复用 sections_default.c]
+--------------------------------------------------------------------------
+ 说明: 抽测 1.1.0/1.2.0/1.3.0 文档中若干可命令行验证的特性。
+ 命令(均用 src\sections_default.c 作输入, -c 编译即可):
+  a) -mcpu=ifx-rc1-base-h-s      (TCRV-181)
+     %TC%\bin\clang.exe -target riscv32-unknown-elf -mcpu=ifx-rc1-base-h-s `
+         -mabi=ilp32 -c src\sections_default.c -o obj\cpu1.o
+  b) -mcpu=ifx-rc1-perf-h-rt     (TCRV-202)
+     %TC%\bin\clang.exe -target riscv32-unknown-elf -mcpu=ifx-rc1-perf-h-rt `
+         -mabi=ilp32 -c src\sections_default.c -o obj\cpu2.o
+  c) rv32e 扩展                   (TCRV-195)
+     %TC%\bin\clang.exe -target riscv32-unknown-elf -march=rv32e -mabi=ilp32e `
+         -c src\sections_default.c -o obj\e.o
+     预期: exit 0，带 warning "target configuration unsupported by HighTec
+     toolchain [-Wnon-hightec]"(rv32e 不在 HighTec 支持 multilib 列表，属正常)
+  d) rv64 -mcmodel=large          (TCRV-179)
+     %TC%\bin\clang.exe -target riscv64-unknown-elf -march=rv64imafd `
+         -mabi=lp64d -mcmodel=large -c src\sections_default.c -o obj\large.o
+  e) Multilib 增删                 (TCRV-221)
+     新增应存在: rv32imafd, rv32imafd_zca_zcb_zba_zbb_zbs,
+       rv32ima_zba_zbb_zbs_zfinx_zdinx, rv32ima_zca_zcb_zba_zbb_zbs,
+       rv64imafd_zca_zcb_zcd_zbc_zba_zbb_zbs
+     移除应不存在: rv32ima_zbb, rv32imaf_zbb, rv32imafd_zbb,
+       rv32ima_zfinx_zdinx_zbb, rv64imafd_zbb
+     检查命令: dir %TC%\riscv\lib
+ 通过标准: 各 -mcpu/-march 组合编译 exit 0；multilib 目录与增删清单一致。
+--------------------------------------------------------------------------------
+
+3. 一键复现（可选：把全部测试串起来）
+--------------------------------------------------------------------------------
+ 在 PowerShell 中先执行（一次性定义本会话的路径与许可证变量）:
+   $env:TC="C:\HighTec\toolchains\riscv\v11.0.0"
+   $env:RLM_LICENSE="C:\HighTec\licenses"
+ 然后切换到 C:\work\code\riscv11_test 目录，把各测试项命令中的
+ %TC%\bin\xxx.exe 替换为 "$env:TC\bin\xxx.exe"（或用完整路径）逐条执行。
+ 关键通过项速查:
+   T1  -> --version 显示 LLVM 21.1.8
+   T2  -> RLM 诊断文件显示 18.0BL1
+   T3  -> __PICOLIBC_VERSION__ "1.8.11"
+   T5  -> 默认生成 .text.*/.data.*/.bss.*/.rodata.* 独立节
+   T6  -> 默认链接回收未引用节
+   T7  -> -Wsection-feature 产生警告, -Wno- 抑制
+   T8  -> -gcc 变体仅显式=0 移入 .data
+   T10 -> 无 msvcp/vcruntime 依赖
+   T12 -> main.elf 生成, 入口 0x80000000
+--------------------------------------------------------------------------------
+ 文档结束
+================================================================================
