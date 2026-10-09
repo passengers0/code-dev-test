@@ -1,0 +1,30 @@
+﻿TCRH-442 Stack Usage Comparison: V11.0.0 vs V0.4.0
+================================================
+Compiler V11: C:\HighTec\toolchains\v850\v11.0.0\bin\clang.exe
+Compiler V04: C:\HighTec\toolchains\v850\v0.4.0\bin\clang.exe
+Flags: -march=rh850-g4mh2 -O2
+
+llvm-size output:
+   text	   data	    bss	    dec	    hex	filename
+   1230	      0	      4	   1234	    4d2	C:\work\code\test\v850\V11.0.0\TCRH-442\v11.0.0.o
+   1212	      0	      4	   1216	    4c0	C:\work\code\test\v850\V11.0.0\TCRH-442\v0.4.0.o
+
+Per-function stack usage (prepare frame + sp adjustment):
+
+Function                     V11 total    V04 total     Diff
+--------                    ----------   ----------     ----
+fill_array                       0(p0+s0)        0(p0+s0)        0
+main                           412(p0+s412)      380(p0+s380)       32
+process_struct                   0(p0+s0)        0(p0+s0)        0
+sink                             0(p0+s0)        0(p0+s0)        0
+sum_array                        0(p0+s0)        0(p0+s0)        0
+test_aligned_array              84(p0+s84)       84(p0+s84)        0
+test_aligned_struct             40(p0+s40)       40(p0+s40)        0
+test_large_array               256(p0+s256)      256(p0+s256)        0
+test_mixed_alignment            76(p0+s76)       76(p0+s76)        0
+test_stack_slot_reuse          128(p0+s128)      128(p0+s128)        0
+test_three_way_reuse            24(p24+s0)       24(p24+s0)        0
+test_volatile_array            128(p0+s128)      128(p0+s128)        0
+
+Note: p=prepare frame size, s=sp adjustment (movea -N,r3,r3)
+V850 backend allocates large arrays via sp adjustment, not prepare frame.

@@ -1,0 +1,39 @@
+cmake_minimum_required(VERSION 3.15)
+project(tests C)
+
+# 工具链配置
+set(TARGET_ARCH "rh850-g4mh2")
+set(CMAKE_C_COMPILER "C:\HighTec\toolchains\v850\v0.4.0\bin\clang.exe")
+set(CMAKE_C_FLAGS "-march=${TARGET_ARCH} -Wall -Wextra")
+
+# 测试用例列表
+set(TEST_SRCS
+    TCRH-257/test_tailcall.c
+    TCRH-420/test_builtlin_reg.c
+    TCRH-421/test_stv_dw.c
+    TCRH-423/test_inline_asm_8_16.c
+)
+# 为每个源文件生成编译目标
+foreach(src ${TEST_SRCS})
+    get_filename_component(name ${src} NAME_WE)
+    get_filename_component(dir ${src} DIRECTORY)
+    
+    add_executable(${name} ${src})
+    set_target_properties(${name} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${dir}"
+    )
+endforeach()
+
+# 生成汇编文件的自定义目标
+add_custom_target(asm_all ALL)
+foreach(src ${TEST_SRCS})
+    get_filename_component(name ${src} NAME_WE)
+    get_filename_component(dir ${src} DIRECTORY)
+    get_filename_component(basename ${src} NAME)
+    
+    add_custom_command(
+        TARGET asm_all
+        COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -S ${CMAKE_CURRENT_SOURCE_DIR}/${src} -o ${CMAKE_BINARY_DIR}/${dir}/${name}.s
+        DEPENDS ${src}
+    )
+endforeach()
